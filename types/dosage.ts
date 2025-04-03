@@ -1,40 +1,38 @@
 import { z } from 'zod';
 
-export const DosageCalculationSchema = z.object({
-  anatomicalArea: z.string(),
-  toxinType: z.string(),
-  patientWeight: z.number().positive(),
-  severity: z.number().int().min(1).max(10),
-  treatmentHistory: z.array(z.object({
-    date: z.date(),
-    dose: z.number(),
-    response: z.string(),
-  })).optional(),
+export interface DosageRange {
+  min: number;
+  max: number;
+}
+
+export interface MuscleData {
+  [key: string]: DosageRange;
+}
+
+export interface ToxinData {
+  [key: string]: MuscleData;
+}
+
+export const PatientSchema = z.object({
+  name: z.string().optional(),
+  weight: z.number().positive().optional(),
+  age: z.number().int().min(0).optional(),
 });
 
-export type DosageCalculation = z.infer<typeof DosageCalculationSchema>;
+export type Patient = z.infer<typeof PatientSchema>;
 
-export interface ToxinConversion {
-  fromType: string;
-  toType: string;
-  factor: number;
-}
-
-export interface MuscleReference {
+export interface SelectedMuscle {
   name: string;
-  minDose: number;
-  maxDose: number;
-  recommendedDose: number;
-  anatomicalArea: string;
+  dosageType: 'min' | 'max';
+  baseAmount: number;
+  adjustedAmount: number;
 }
 
-export interface ToxinProduct {
-  name: string;
-  type: string;
-  unitsPerVial: number;
-  dilutionRange: {
-    min: number;
-    max: number;
-    recommended: number;
-  };
-}
+export const TOXIN_BRANDS = ['Dysport', 'Botox', 'Xeomin'] as const;
+export type ToxinBrand = typeof TOXIN_BRANDS[number];
+
+export const SESSION_LIMITS: Record<ToxinBrand, number> = {
+  Dysport: 1000,
+  Botox: 400,
+  Xeomin: 400,
+};
