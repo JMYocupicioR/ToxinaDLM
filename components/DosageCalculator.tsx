@@ -1,27 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, Platform, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { 
+  DosageCalculationResult, 
+  MuscleReference, 
+  ToxinConversion, 
+  ToxinProduct 
+} from '@/types/dosage';
+
+// Importar el nuevo componente AnatomicalSelector corregido
 import { AnatomicalSelector } from './AnatomicalSelector';
-import { ToxinSelector } from './ToxinSelector';
-import { DosageCalculation, MuscleReference, ToxinConversion, ToxinProduct } from '@/types/dosage';
 
 interface DosageCalculatorProps {
   onCalculate: (calculation: DosageCalculationResult) => void;
-}
-
-// Define new types for calculated results
-interface DosageCalculationResult {
-  area: string;
-  toxin: string;
-  weight: number;
-  severity: number;
-  totalDose: number;
-  maxSessionDose: number;
-  muscleSpecificDose: number;
-  maxMuscleDose: number;
-  recommendedDose: number;
-  recommendedDoseRange: { min: number; max: number };
-  isPediatric: boolean;
-  safetyAlerts: string[];
 }
 
 // Toxin product database with clinical data
@@ -59,213 +49,6 @@ const TOXIN_TYPES = [
   { id: 'IncobotulinumtoxinA', name: 'IncobotulinumtoxinA (Xeomin)' },
   { id: 'RimabotulinumtoxinB', name: 'RimabotulinumtoxinB (Myobloc)' },
 ];
-
-// Conversion factors based on clinical evidence
-const CONVERSION_FACTORS: ToxinConversion[] = [
-  { fromType: 'OnabotulinumtoxinA', toType: 'AbobotulinumtoxinA', factor: 2.5 },
-  { fromType: 'OnabotulinumtoxinA', toType: 'IncobotulinumtoxinA', factor: 1 },
-  { fromType: 'OnabotulinumtoxinA', toType: 'RimabotulinumtoxinB', factor: 50 },
-  { fromType: 'AbobotulinumtoxinA', toType: 'OnabotulinumtoxinA', factor: 0.4 },
-  { fromType: 'AbobotulinumtoxinA', toType: 'IncobotulinumtoxinA', factor: 0.4 },
-  { fromType: 'AbobotulinumtoxinA', toType: 'RimabotulinumtoxinB', factor: 20 },
-  { fromType: 'IncobotulinumtoxinA', toType: 'OnabotulinumtoxinA', factor: 1 },
-  { fromType: 'IncobotulinumtoxinA', toType: 'AbobotulinumtoxinA', factor: 2.5 },
-  { fromType: 'IncobotulinumtoxinA', toType: 'RimabotulinumtoxinB', factor: 50 },
-  { fromType: 'RimabotulinumtoxinB', toType: 'OnabotulinumtoxinA', factor: 0.02 },
-  { fromType: 'RimabotulinumtoxinB', toType: 'AbobotulinumtoxinA', factor: 0.05 },
-  { fromType: 'RimabotulinumtoxinB', toType: 'IncobotulinumtoxinA', factor: 0.02 },
-];
-
-interface ToxinConversionReferenceProps {}
-
-export function ToxinConversionReference({}: ToxinConversionReferenceProps) {
-  const [fromToxin, setFromToxin] = useState('OnabotulinumtoxinA');
-  const [toToxin, setToToxin] = useState('AbobotulinumtoxinA');
-  const [inputDose, setInputDose] = useState('');
-  const [convertedDose, setConvertedDose] = useState<number | null>(null);
-
-  // Find conversion factor between two toxin types
-  const findConversionFactor = (from: string, to: string): number => {
-    // If converting to the same toxin, return 1
-    if (from === to) return 1;
-
-    const conversion = CONVERSION_FACTORS.find(
-      factor => factor.fromType === from && factor.toType === to
-    );
-    
-    return conversion ? conversion.factor : 1;
-  };
-
-  // Convert dose between toxin types
-  const convertDose = () => {
-    if (!inputDose) {
-      setConvertedDose(null);
-      return;
-    }
-
-    const dose = parseFloat(inputDose);
-    if (isNaN(dose)) {
-      setConvertedDose(null);
-      return;
-    }
-
-    const factor = findConversionFactor(fromToxin, toToxin);
-    const result = dose * factor;
-    setConvertedDose(result);
-  };
-
-  // Get conversion description
-  const getConversionDescription = (): string => {
-    if (fromToxin === toToxin) {
-      return 'No conversion needed (1:1)';
-    }
-
-    const factor = findConversionFactor(fromToxin, toToxin);
-    if (factor < 1) {
-      return `1 unit = ${factor.toFixed(2)} units`;
-    } else {
-      return `1 unit = ${factor.toFixed(1)} units`;
-    }
-  };
-
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Toxin Conversion Calculator</Text>
-      
-      <View style={styles.converterContainer}>
-        <View style={styles.toxinSelectorContainer}>
-          <Text style={styles.label}>From:</Text>
-          <View style={styles.buttonContainer}>
-            {TOXIN_TYPES.map(toxin => (
-              <TouchableOpacity
-                key={`from-${toxin.id}`}
-                style={[
-                  styles.toxinButton,
-                  fromToxin === toxin.id && styles.selectedButton,
-                ]}
-                onPress={() => {
-                  setFromToxin(toxin.id);
-                  convertDose();
-                }}>
-                <Text
-                  style={[
-                    styles.toxinButtonText,
-                    fromToxin === toxin.id && styles.selectedButtonText,
-                  ]}>
-                  {toxin.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-        
-        <View style={styles.toxinSelectorContainer}>
-          <Text style={styles.label}>To:</Text>
-          <View style={styles.buttonContainer}>
-            {TOXIN_TYPES.map(toxin => (
-              <TouchableOpacity
-                key={`to-${toxin.id}`}
-                style={[
-                  styles.toxinButton,
-                  toToxin === toxin.id && styles.selectedButton,
-                ]}
-                onPress={() => {
-                  setToToxin(toxin.id);
-                  convertDose();
-                }}>
-                <Text
-                  style={[
-                    styles.toxinButtonText,
-                    toToxin === toxin.id && styles.selectedButtonText,
-                  ]}>
-                  {toxin.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-        
-        <View style={styles.conversionInfoContainer}>
-          <Text style={styles.conversionInfoText}>
-            Conversion Factor: {getConversionDescription()}
-          </Text>
-        </View>
-        
-        <View style={styles.doseCalculatorContainer}>
-          <View style={styles.doseInputContainer}>
-            <Text style={styles.label}>Enter dose:</Text>
-            <TextInput
-              style={styles.doseInput}
-              value={inputDose}
-              onChangeText={(text) => {
-                setInputDose(text);
-                // Auto-convert when the input changes
-                const newDose = parseFloat(text);
-                if (!isNaN(newDose)) {
-                  const factor = findConversionFactor(fromToxin, toToxin);
-                  setConvertedDose(newDose * factor);
-                } else {
-                  setConvertedDose(null);
-                }
-              }}
-              keyboardType="numeric"
-              placeholder="Enter units"
-            />
-          </View>
-          
-          <TouchableOpacity
-            style={styles.convertButton}
-            onPress={convertDose}>
-            <Text style={styles.convertButtonText}>Convert</Text>
-          </TouchableOpacity>
-        </View>
-        
-        {convertedDose !== null && (
-          <View style={styles.resultContainer}>
-            <Text style={styles.resultLabel}>Converted Dose:</Text>
-            <Text style={styles.resultValue}>
-              {convertedDose.toFixed(1)} units
-            </Text>
-          </View>
-        )}
-      </View>
-      
-      <View style={styles.disclaimerContainer}>
-        <Text style={styles.disclaimerText}>
-          Note: Conversion factors are approximate and based on clinical guidelines. 
-          Individual patient response may vary. Always use clinical judgment when 
-          converting between toxin types.
-        </Text>
-      </View>
-      
-      <View style={styles.referenceContainer}>
-        <Text style={styles.referenceTitle}>Quick Reference</Text>
-        <View style={styles.referenceTable}>
-          <View style={styles.referenceHeader}>
-            <Text style={styles.referenceHeaderText}>From</Text>
-            <Text style={styles.referenceHeaderText}>To</Text>
-            <Text style={styles.referenceHeaderText}>Multiply By</Text>
-          </View>
-          
-          {[
-            { from: 'Botox', to: 'Dysport', factor: 2.5 },
-            { from: 'Botox', to: 'Xeomin', factor: 1 },
-            { from: 'Dysport', to: 'Botox', factor: 0.4 },
-            { from: 'Dysport', to: 'Xeomin', factor: 0.4 },
-            { from: 'Xeomin', to: 'Botox', factor: 1 },
-            { from: 'Xeomin', to: 'Dysport', factor: 2.5 },
-          ].map((conv, index) => (
-            <View key={index} style={styles.referenceRow}>
-              <Text style={styles.referenceCell}>{conv.from}</Text>
-              <Text style={styles.referenceCell}>{conv.to}</Text>
-              <Text style={styles.referenceCell}>{conv.factor}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-    </View>
-  );
-}
 
 // Clinical dosage guidelines by anatomical area (reference for OnabotulinumtoxinA/Botox)
 const MUSCLE_REFERENCES: MuscleReference[] = [
@@ -336,6 +119,32 @@ export function DosageCalculator({ onCalculate }: DosageCalculatorProps) {
   const [severity, setSeverity] = useState('5');
   const [calculatedDose, setCalculatedDose] = useState<number | null>(null);
   const [doseRange, setDoseRange] = useState<{ min: number; max: number } | null>(null);
+
+  // Component for selecting toxin type
+  const ToxinSelector = () => (
+    <View style={styles.container}>
+      <Text style={styles.label}>Select Toxin Type</Text>
+      <View style={styles.buttonContainer}>
+        {TOXIN_TYPES.map((toxin) => (
+          <TouchableOpacity
+            key={toxin.id}
+            style={[
+              styles.toxinButton,
+              selectedToxin === toxin.id && styles.selectedButton,
+            ]}
+            onPress={() => setSelectedToxin(toxin.id)}>
+            <Text
+              style={[
+                styles.toxinButtonText,
+                selectedToxin === toxin.id && styles.selectedButtonText,
+              ]}>
+              {toxin.name}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
 
   // Get reference doses for the selected anatomical area
   const getReferenceDoses = () => {
@@ -474,184 +283,3 @@ export function DosageCalculator({ onCalculate }: DosageCalculatorProps) {
         min: referenceDoses.min,
         max: referenceDoses.max
       });
-    } else {
-      setDoseRange(null);
-    }
-    
-    // Auto-calculate when all required fields are filled
-    if (selectedArea && selectedToxin && patientWeight && parseFloat(patientWeight) > 0) {
-      handleCalculation();
-    }
-  }, [selectedArea, selectedToxin, patientWeight, severity, patientAge]);
-
-  return (
-    <View style={styles.container}>
-      <AnatomicalSelector
-        selectedArea={selectedArea}
-        onSelectArea={setSelectedArea}
-      />
-
-      <ToxinSelector
-        selectedToxin={selectedToxin}
-        onSelectToxin={setSelectedToxin}
-      />
-
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Patient Weight (kg)</Text>
-        <TextInput
-          style={styles.input}
-          value={patientWeight}
-          onChangeText={setPatientWeight}
-          keyboardType="numeric"
-          placeholder="Enter patient weight"
-        />
-      </View>
-
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Patient Age (years)</Text>
-        <TextInput
-          style={styles.input}
-          value={patientAge}
-          onChangeText={setPatientAge}
-          keyboardType="numeric"
-          placeholder="Enter patient age (optional)"
-        />
-      </View>
-
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Condition Severity (1-10)</Text>
-        <TextInput
-          style={styles.input}
-          value={severity}
-          onChangeText={setSeverity}
-          keyboardType="numeric"
-          placeholder="Enter severity"
-          maxLength={2}
-        />
-      </View>
-
-      {doseRange && (
-        <View style={styles.doseRangeContainer}>
-          <Text style={styles.label}>Recommended Dose Range</Text>
-          <View style={styles.doseRangeBox}>
-            <Text style={styles.doseRangeText}>
-              {doseRange.min.toFixed(0)} - {doseRange.max.toFixed(0)} units
-            </Text>
-          </View>
-        </View>
-      )}
-
-      {calculatedDose !== null && (
-        <View style={styles.calculatedDoseContainer}>
-          <Text style={styles.label}>Calculated Dose</Text>
-          <View style={styles.calculatedDoseBox}>
-            <Text style={styles.calculatedDoseText}>
-              {calculatedDose.toFixed(0)} units
-            </Text>
-          </View>
-        </View>
-      )}
-
-      <TouchableOpacity 
-        style={styles.calculateButton}
-        onPress={handleCalculation}
-      >
-        <Text style={styles.calculateButtonText}>Calculate Dose</Text>
-      </TouchableOpacity>
-
-      <View style={styles.infoContainer}>
-        <Text style={styles.infoText}>
-          Dosages are calculated based on clinical guidelines and may need adjustment
-          based on individual patient factors and clinical judgment.
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    ...Platform.select({
-      web: {
-        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-      },
-      default: {
-        elevation: 2,
-      },
-    }),
-  },
-  inputContainer: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#334155',
-    marginBottom: 8,
-  },
-  input: {
-    height: 48,
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    fontSize: 16,
-    color: '#0f172a',
-  },
-  doseRangeContainer: {
-    marginBottom: 16,
-  },
-  doseRangeBox: {
-    backgroundColor: '#f1f5f9',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-  },
-  doseRangeText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#334155',
-  },
-  calculatedDoseContainer: {
-    marginBottom: 16,
-  },
-  calculatedDoseBox: {
-    backgroundColor: '#0891b2',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-  },
-  calculatedDoseText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
-  calculateButton: {
-    backgroundColor: '#0891b2',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  calculateButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
-  infoContainer: {
-    marginTop: 16,
-    padding: 12,
-    backgroundColor: '#f8fafc',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  infoText: {
-    fontSize: 12,
-    color: '#64748b',
-    textAlign: 'center',
-  },
-});

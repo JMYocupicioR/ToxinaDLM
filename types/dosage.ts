@@ -36,3 +36,52 @@ export const SESSION_LIMITS: Record<ToxinBrand, number> = {
   Botox: 400,
   Xeomin: 400,
 };
+
+// Nuevos tipos para la calculadora de dosis
+export interface DosageCalculationResult {
+  area: string;
+  toxin: string;
+  weight: number;
+  severity: number;
+  totalDose: number;
+  maxSessionDose: number;
+  muscleSpecificDose: number;
+  maxMuscleDose: number;
+  recommendedDose: number;
+  recommendedDoseRange: { min: number; max: number };
+  isPediatric: boolean;
+  safetyAlerts: string[];
+}
+
+export interface ToxinProduct {
+  name: string;
+  type: string;
+  unitsPerVial: number;
+  dilutionRange: {
+    min: number;
+    max: number;
+    recommended: number;
+  };
+}
+
+export interface ToxinConversion {
+  fromType: string;
+  toType: string;
+  factor: number;
+}
+
+export interface MuscleReference {
+  name: string;
+  minDose: number;
+  maxDose: number;
+  recommendedDose: number;
+  anatomicalArea: string;
+}
+
+export interface DosageCalculation {
+  patient: Patient;
+  area: string;
+  toxin: string;
+  severity: number;
+  result?: DosageCalculationResult;
+}
