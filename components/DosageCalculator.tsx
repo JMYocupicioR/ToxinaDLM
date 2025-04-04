@@ -7,8 +7,8 @@ import {
   ToxinProduct 
 } from '@/types/dosage';
 
-// Importar el nuevo componente AnatomicalSelector corregido
-import { AnatomicalSelector } from './AnatomicalSelector';
+// Import AnatomicalSelector with correct path
+import { AnatomicalSelector } from '@/components/AnatomicalSelector';
 
 interface DosageCalculatorProps {
   onCalculate: (calculation: DosageCalculationResult) => void;
@@ -283,3 +283,186 @@ export function DosageCalculator({ onCalculate }: DosageCalculatorProps) {
         min: referenceDoses.min,
         max: referenceDoses.max
       });
+    }
+  }, [selectedArea, selectedToxin]);
+
+  return (
+    <View style={styles.mainContainer}>
+      <AnatomicalSelector
+        selectedArea={selectedArea}
+        onSelectArea={setSelectedArea}
+      />
+      
+      <ToxinSelector />
+      
+      <View style={styles.container}>
+        <Text style={styles.label}>Patient Information</Text>
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Weight (kg)"
+            keyboardType="numeric"
+            value={patientWeight}
+            onChangeText={setPatientWeight}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Age (years)"
+            keyboardType="numeric"
+            value={patientAge}
+            onChangeText={setPatientAge}
+          />
+        </View>
+      </View>
+      
+      <View style={styles.container}>
+        <Text style={styles.label}>Condition Severity (1-10)</Text>
+        <View style={styles.severityContainer}>
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((level) => (
+            <TouchableOpacity
+              key={level}
+              style={[
+                styles.severityButton,
+                parseInt(severity, 10) === level && styles.selectedButton,
+              ]}
+              onPress={() => setSeverity(level.toString())}>
+              <Text
+                style={[
+                  styles.severityButtonText,
+                  parseInt(severity, 10) === level && styles.selectedButtonText,
+                ]}>
+                {level}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+      
+      <TouchableOpacity
+        style={[
+          styles.calculateButton,
+          (!selectedArea || !patientWeight) && styles.disabledButton,
+        ]}
+        onPress={handleCalculation}
+        disabled={!selectedArea || !patientWeight}>
+        <Text style={styles.calculateButtonText}>Calculate Dose</Text>
+      </TouchableOpacity>
+      
+      {calculatedDose !== null && doseRange && (
+        <View style={styles.resultContainer}>
+          <Text style={styles.resultLabel}>Calculated Dose:</Text>
+          <Text style={styles.resultValue}>{calculatedDose} units</Text>
+          <Text style={styles.resultRange}>
+            Recommended range: {doseRange.min.toFixed(0)} - {doseRange.max.toFixed(0)} units
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  mainContainer: {
+    marginBottom: 20,
+  },
+  container: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#334155',
+    marginBottom: 8,
+  },
+  buttonContainer: {
+    flexDirection: 'column',
+    gap: 8,
+  },
+  toxinButton: {
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  selectedButton: {
+    backgroundColor: '#0891b2',
+    borderColor: '#0891b2',
+  },
+  toxinButtonText: {
+    fontSize: 14,
+    color: '#334155',
+  },
+  selectedButtonText: {
+    color: '#ffffff',
+  },
+  inputContainer: {
+    gap: 8,
+  },
+  input: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    color: '#334155',
+  },
+  severityContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  severityButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#f1f5f9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  severityButtonText: {
+    fontSize: 14,
+    color: '#334155',
+  },
+  calculateButton: {
+    backgroundColor: '#0891b2',
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  disabledButton: {
+    backgroundColor: '#cbd5e1',
+  },
+  calculateButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  resultContainer: {
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: '#f0f9ff',
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#0891b2',
+  },
+  resultLabel: {
+    fontSize: 14,
+    color: '#334155',
+    marginBottom: 4,
+  },
+  resultValue: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#0f172a',
+    marginBottom: 4,
+  },
+  resultRange: {
+    fontSize: 12,
+    color: '#64748b',
+  },
+});
