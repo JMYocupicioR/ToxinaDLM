@@ -6,7 +6,8 @@ import {
   TouchableOpacity, 
   FlatList, 
   TextInput,
-  Modal
+  Modal,
+  ScrollView
 } from 'react-native';
 import { ToxinBrand, SelectedMuscle } from '@/types/dosage';
 import { toxinData } from '@/data/toxinData';
@@ -77,7 +78,7 @@ export function MuscleSelector({ brand, selectedMuscles, onMusclesChange }: Musc
     }
     
     setFilteredMuscles(filtered);
-  }, [searchText, brand, selectedGroup]);
+  }, [searchText, brand, selectedGroup, allMuscles]);
   
   const addMuscle = (muscleName: string) => {
     if (selectedMuscles.some((m) => m.name === muscleName)) {

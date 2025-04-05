@@ -51,6 +51,7 @@ export interface DosageCalculationResult {
   recommendedDoseRange: { min: number; max: number };
   isPediatric: boolean;
   safetyAlerts: string[];
+  pathology?: string;
 }
 
 export interface ToxinProduct {
@@ -83,5 +84,6 @@ export interface DosageCalculation {
   area: string;
   toxin: string;
   severity: number;
+  pathology?: string;
   result?: DosageCalculationResult;
 }

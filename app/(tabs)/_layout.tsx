@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Calculator, ClipboardList, Settings, User } from 'lucide-react-native';
+import { Calculator, ClipboardList, Settings, User, FileText } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
@@ -18,6 +18,13 @@ export default function TabLayout() {
         options={{
           title: 'Calculator',
           tabBarIcon: ({ color, size }) => <Calculator size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="pathologies"
+        options={{
+          title: 'Indications',
+          tabBarIcon: ({ color, size }) => <FileText size={size} color={color} />,
         }}
       />
       <Tabs.Screen

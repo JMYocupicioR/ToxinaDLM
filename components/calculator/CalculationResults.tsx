@@ -114,7 +114,7 @@ export function CalculationResults({
       {detailsExpanded && (
         <ScrollView style={styles.musclesContainer}>
           {minDoseMuscles.length > 0 && (
-            <>
+            <View>
               <Text style={styles.musclesGroupTitle}>Minimum Dose Muscles</Text>
               {minDoseMuscles.map((muscle) => (
                 <View key={muscle.name} style={styles.muscleRow}>
@@ -122,11 +122,11 @@ export function CalculationResults({
                   <Text style={styles.muscleDose}>{muscle.adjustedAmount} U</Text>
                 </View>
               ))}
-            </>
+            </View>
           )}
           
           {maxDoseMuscles.length > 0 && (
-            <>
+            <View>
               <Text style={styles.musclesGroupTitle}>Maximum Dose Muscles</Text>
               {maxDoseMuscles.map((muscle) => (
                 <View key={muscle.name} style={styles.muscleRow}>
@@ -134,7 +134,7 @@ export function CalculationResults({
                   <Text style={styles.muscleDose}>{muscle.adjustedAmount} U</Text>
                 </View>
               ))}
-            </>
+            </View>
           )}
         </ScrollView>
       )}
@@ -151,9 +151,11 @@ export function CalculationResults({
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.disclaimer}>
-        This calculation is provided as a clinical reference only. Always use professional judgment when determining appropriate dosing.
-      </Text>
+      <View>
+        <Text style={styles.disclaimer}>
+          This calculation is provided as a clinical reference only. Always use professional judgment when determining appropriate dosing.
+        </Text>
+      </View>
     </View>
   );
 }

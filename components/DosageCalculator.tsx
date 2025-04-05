@@ -7,7 +7,9 @@ import {
   PatientInfo,
   MuscleSelector,
   SelectedMusclesList,
-  CalculatorActions
+  CalculatorActions,
+  PathologySelector,
+  RecommendedMuscles
 } from '@/components/calculator';
 import { SafetyAlerts } from '@/components/SafetyAlerts';
 
