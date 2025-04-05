@@ -15,9 +15,14 @@ export default function PathologiesScreen() {
   };
 
   const handleOpenCalculator = (pathologyId: string) => {
-    // In a real implementation, we'd pass the pathology to the calculator screen
-    // For now, just navigate to the calculator tab
-    router.push('/');
+    // Pass the pathology ID to the calculator screen
+    router.push({
+      pathname: '/',
+      params: { 
+        pathologyId,
+        source: 'pathologies'
+      }
+    });
   };
 
   return (

@@ -1,18 +1,83 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, Alert, Linking } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, Alert, Linking, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
   User, Info, Package, Bell, Moon, Sun, Languages, Lock, 
   HelpCircle, FileText, Trash2, ShieldCheck, Mail, ExternalLink
 } from 'lucide-react-native';
+import { getSettings, saveSettings, clearCalculationHistory, AppSettings } from '@/services/storageService';
 
 export default function SettingsScreen() {
+  // State
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [areNotificationsEnabled, setAreNotificationsEnabled] = useState(true);
   const [useMetricUnits, setUseMetricUnits] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   
   const version = '1.0.0';
   
+  // Load settings on component mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      setIsLoading(true);
+      try {
+        const settings = await getSettings();
+        if (settings) {
+          setIsDarkMode(settings.isDarkMode);
+          setAreNotificationsEnabled(settings.areNotificationsEnabled);
+          setUseMetricUnits(settings.useMetricUnits);
+        }
+      } catch (error) {
+        console.error('Error loading settings:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadSettings();
+  }, []);
+  
+  // Save settings to AsyncStorage
+  const saveSettingsChanges = async (settings: AppSettings) => {
+    try {
+      await saveSettings(settings);
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      Alert.alert('Error', 'Failed to save settings.');
+    }
+  };
+  
+  // Handle dark mode toggle
+  const handleDarkModeToggle = (value: boolean) => {
+    setIsDarkMode(value);
+    saveSettingsChanges({
+      isDarkMode: value,
+      areNotificationsEnabled,
+      useMetricUnits
+    });
+  };
+  
+  // Handle notifications toggle
+  const handleNotificationsToggle = (value: boolean) => {
+    setAreNotificationsEnabled(value);
+    saveSettingsChanges({
+      isDarkMode,
+      areNotificationsEnabled: value,
+      useMetricUnits
+    });
+  };
+  
+  // Handle metric units toggle
+  const handleMetricUnitsToggle = (value: boolean) => {
+    setUseMetricUnits(value);
+    saveSettingsChanges({
+      isDarkMode,
+      areNotificationsEnabled,
+      useMetricUnits: value
+    });
+  };
+  
+  // Handle clearing calculation history
   const handleClearHistory = () => {
     Alert.alert(
       'Clear History',
@@ -24,9 +89,18 @@ export default function SettingsScreen() {
         },
         {
           text: 'Clear',
-          onPress: () => {
-            // Would implement actual history clearing
-            Alert.alert('Success', 'Calculation history has been cleared.');
+          onPress: async () => {
+            try {
+              const success = await clearCalculationHistory();
+              if (success) {
+                Alert.alert('Success', 'Calculation history has been cleared.');
+              } else {
+                Alert.alert('Error', 'Failed to clear calculation history.');
+              }
+            } catch (error) {
+              console.error('Error clearing history:', error);
+              Alert.alert('Error', 'Failed to clear calculation history.');
+            }
           },
           style: 'destructive',
         },
@@ -34,13 +108,26 @@ export default function SettingsScreen() {
     );
   };
   
+  // Open DeepLuxMed website
   const openWebsite = () => {
     Linking.openURL('https://deepluxmed.mx');
   };
   
+  // Open support email
   const openEmail = () => {
     Linking.openURL('mailto:support@deepluxmed.mx');
   };
+  
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#0891b2" />
+          <Text style={styles.loadingText}>Loading settings...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
   
   return (
     <SafeAreaView style={styles.container}>
@@ -83,7 +170,7 @@ export default function SettingsScreen() {
               <Switch
                 trackColor={{ false: '#e2e8f0', true: '#0e7490' }}
                 thumbColor={'#ffffff'}
-                onValueChange={setIsDarkMode}
+                onValueChange={handleDarkModeToggle}
                 value={isDarkMode}
               />
             </View>
@@ -96,7 +183,7 @@ export default function SettingsScreen() {
               <Switch
                 trackColor={{ false: '#e2e8f0', true: '#0e7490' }}
                 thumbColor={'#ffffff'}
-                onValueChange={setAreNotificationsEnabled}
+                onValueChange={handleNotificationsToggle}
                 value={areNotificationsEnabled}
               />
             </View>
@@ -109,7 +196,7 @@ export default function SettingsScreen() {
               <Switch
                 trackColor={{ false: '#e2e8f0', true: '#0e7490' }}
                 thumbColor={'#ffffff'}
-                onValueChange={setUseMetricUnits}
+                onValueChange={handleMetricUnitsToggle}
                 value={useMetricUnits}
               />
             </View>
@@ -184,6 +271,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#64748b',
   },
   scrollView: {
     flex: 1,

@@ -2,16 +2,14 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { Info, X, ChevronRight } from 'lucide-react-native';
 import { ToxinBrand } from '@/types/dosage';
-import { Pathology, pathologyData } from '@/data/pathologyData';
+import { Pathology, pathologies } from '@/data/pathologyData';
+import { ContextBanner } from '@/components/ContextBanner';
 
 interface PathologySelectorProps {
   selectedBrand: ToxinBrand | '';
   selectedPathologyId: string | null;
   onSelectPathology: (pathologyId: string | null) => void;
-  onApplyRecommendedMuscles?: (muscles: Array<{
-    muscleName: string;
-    recommendedDosage: 'min' | 'max';
-  }>) => void;
+  onApplyRecommendedMuscles?: () => void;
 }
 
 export function PathologySelector({ 
@@ -24,7 +22,7 @@ export function PathologySelector({
   const [selectedPathologyForDetail, setSelectedPathologyForDetail] = useState<Pathology | null>(null);
 
   const selectedPathology = selectedPathologyId 
-    ? pathologyData.find(p => p.id === selectedPathologyId) || null 
+    ? pathologies.find(p => p.id === selectedPathologyId) || null 
     : null;
 
   const handleOpenPathologyDetail = (pathology: Pathology) => {
@@ -41,27 +39,16 @@ export function PathologySelector({
     }
   };
 
-  const handleApplyRecommendedMuscles = () => {
-    if (!selectedPathology || !selectedBrand || !onApplyRecommendedMuscles) return;
-    
-    const muscles = selectedPathology.recommendedMuscles[selectedBrand as ToxinBrand];
-    if (muscles) {
-      onApplyRecommendedMuscles(
-        muscles.map(m => ({
-          muscleName: m.muscleName,
-          recommendedDosage: m.recommendedDosage
-        }))
-      );
-    }
-  };
-
   return (
     <View style={styles.container}>
       <Text style={styles.label}>Pathology</Text>
       
+      {/* Patient Context Banner */}
+      <ContextBanner type="patient" />
+      
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollView}>
         <View style={styles.pathologiesRow}>
-          {pathologyData.map((pathology) => (
+          {pathologies.map((pathology) => (
             <View key={pathology.id} style={styles.pathologyItem}>
               <TouchableOpacity
                 style={[
@@ -94,7 +81,7 @@ export function PathologySelector({
       {selectedPathology && selectedBrand && onApplyRecommendedMuscles && (
         <TouchableOpacity
           style={styles.applyButton}
-          onPress={handleApplyRecommendedMuscles}
+          onPress={onApplyRecommendedMuscles}
         >
           <Text style={styles.applyButtonText}>
             Apply Recommended Muscles
@@ -186,16 +173,8 @@ export function PathologySelector({
                     <TouchableOpacity
                       style={styles.modalApplyButton}
                       onPress={() => {
-                        const muscles = selectedPathologyForDetail.recommendedMuscles[selectedBrand as ToxinBrand];
-                        if (muscles) {
-                          onApplyRecommendedMuscles(
-                            muscles.map(m => ({
-                              muscleName: m.muscleName,
-                              recommendedDosage: m.recommendedDosage
-                            }))
-                          );
-                          setIsModalVisible(false);
-                        }
+                        onApplyRecommendedMuscles();
+                        setIsModalVisible(false);
                       }}
                     >
                       <Text style={styles.modalApplyButtonText}>
@@ -386,5 +365,4 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '500',
-  }
-});
+  },

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { ToxinBrand } from '@/types/dosage';
-import { AlertCircle } from 'lucide-react-native';
+import { CircleAlert as AlertCircle } from 'lucide-react-native';
 
 interface BrandSelectorProps {
   selectedBrand: ToxinBrand | '';
@@ -46,7 +46,9 @@ export function BrandSelector({ selectedBrand, onBrandChange, brands }: BrandSel
           >
             <View style={styles.brandCardContent}>
               <View style={styles.brandNameContainer}>
-                <Text style={styles.brandName}>{brand}</Text>
+                <Text style={styles.brandName}>
+                  {brand}
+                </Text>
                 <Text style={styles.brandScientific}>
                   {BRAND_INFO[brand].fullName}
                 </Text>
@@ -56,14 +58,14 @@ export function BrandSelector({ selectedBrand, onBrandChange, brands }: BrandSel
                 {BRAND_INFO[brand].description}
               </Text>
               
-              {brand === 'Dysport' && (
+              {brand === 'Dysport' ? (
                 <View style={styles.conversionInfo}>
                   <AlertCircle size={14} color="#64748b" />
                   <Text style={styles.conversionText}>
                     Uses 2.5-3x units vs Botox
                   </Text>
                 </View>
-              )}
+              ) : null}
             </View>
             
             <View 
