@@ -1,28 +1,58 @@
-import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Text, Platform } from 'react-native';
-import { CalculatorIcon, RefreshCw, Printer, Share2 } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, Text, Platform, ActivityIndicator, Share } from 'react-native';
+import { Calculator, RefreshCw, Printer, Share2 } from 'lucide-react-native';
 
 interface CalculatorActionsProps {
   onCalculate: () => void;
   onReset: () => void;
   canCalculate: boolean;
+  isCalculating?: boolean;
 }
 
-export function CalculatorActions({ onCalculate, onReset, canCalculate }: CalculatorActionsProps) {
-  const handleShare = () => {
-    // Share functionality would be implemented here
-    // On a real app, this would use the Share API to export results
-    console.log('Share functionality would be triggered here');
+export function CalculatorActions({ 
+  onCalculate, 
+  onReset, 
+  canCalculate, 
+  isCalculating = false 
+}: CalculatorActionsProps) {
+  const [isSharing, setIsSharing] = useState(false);
+
+  const handleShare = async () => {
+    if (!canCalculate || isSharing) return;
+    
+    setIsSharing(true);
+    try {
+      await Share.share({
+        message: 'ToxinaDLM - Cálculo de dosis',
+        title: 'Compartir cálculo'
+      });
+    } catch (error) {
+      console.error('Error sharing calculation:', error);
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        style={[styles.mainButton, !canCalculate && styles.disabledButton]}
+        style={[
+          styles.mainButton, 
+          !canCalculate && styles.disabledButton,
+          isCalculating && styles.loadingButton
+        ]}
         onPress={onCalculate}
-        disabled={!canCalculate}>
-        <CalculatorIcon size={18} color="#ffffff" />
-        <Text style={styles.mainButtonText}>Calculate Dose</Text>
+        disabled={!canCalculate || isCalculating}>
+        
+        {isCalculating ? (
+          <ActivityIndicator size="small" color="#ffffff" />
+        ) : (
+          <Calculator size={18} color="#ffffff" />
+        )}
+        
+        <Text style={styles.mainButtonText}>
+          {isCalculating ? 'Calculando...' : 'Calcular Dosis'}
+        </Text>
       </TouchableOpacity>
 
       <View style={styles.secondaryButtons}>
@@ -30,33 +60,49 @@ export function CalculatorActions({ onCalculate, onReset, canCalculate }: Calcul
           style={styles.secondaryButton}
           onPress={onReset}>
           <RefreshCw size={16} color="#64748b" />
-          <Text style={styles.secondaryButtonText}>Reset</Text>
+          <Text style={styles.secondaryButtonText}>Reiniciar</Text>
         </TouchableOpacity>
 
         {Platform.OS === 'web' && (
           <TouchableOpacity
-            style={[styles.secondaryButton, !canCalculate && styles.disabledSecondaryButton]}
+            style={[
+              styles.secondaryButton, 
+              !canCalculate && styles.disabledSecondaryButton
+            ]}
             disabled={!canCalculate}>
-            <Printer size={16} color={canCalculate ? "#64748b" : "#cbd5e1"} />
+            <Printer 
+              size={16} 
+              color={canCalculate ? "#64748b" : "#cbd5e1"} 
+            />
             <Text style={[
               styles.secondaryButtonText, 
               !canCalculate && styles.disabledSecondaryText
             ]}>
-              Print
+              Imprimir
             </Text>
           </TouchableOpacity>
         )}
 
         <TouchableOpacity
-          style={[styles.secondaryButton, !canCalculate && styles.disabledSecondaryButton]}
+          style={[
+            styles.secondaryButton, 
+            (!canCalculate || isSharing) && styles.disabledSecondaryButton
+          ]}
           onPress={handleShare}
-          disabled={!canCalculate}>
-          <Share2 size={16} color={canCalculate ? "#64748b" : "#cbd5e1"} />
+          disabled={!canCalculate || isSharing}>
+          {isSharing ? (
+            <ActivityIndicator size="small" color="#64748b" />
+          ) : (
+            <Share2 
+              size={16} 
+              color={canCalculate ? "#64748b" : "#cbd5e1"} 
+            />
+          )}
           <Text style={[
-            styles.secondaryButtonText, 
-            !canCalculate && styles.disabledSecondaryText
+            styles.secondaryButtonText,
+            (!canCalculate || isSharing) && styles.disabledSecondaryText
           ]}>
-            Share
+            {isSharing ? 'Compartiendo...' : 'Compartir'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -92,6 +138,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#cbd5e1',
     shadowColor: '#94a3b8',
   },
+  loadingButton: {
+    backgroundColor: '#0e7490',
+  },
   secondaryButtons: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -119,5 +168,5 @@ const styles = StyleSheet.create({
   },
   disabledSecondaryText: {
     color: '#cbd5e1',
-  },
+  }
 });

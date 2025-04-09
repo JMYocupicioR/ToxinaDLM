@@ -64,9 +64,6 @@ export default function CalculatorScreen() {
             setCalculationResult(recentCalc);
             setAlerts(recentCalc.alerts || []);
             setCalculationDone(true);
-            
-            // Initialize calculator with saved state if needed
-            // (This would be used if we want to pre-populate the calculator with last values)
           }
         }
       } catch (error) {

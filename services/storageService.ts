@@ -1,9 +1,9 @@
 // services/storageService.ts
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SelectedMuscle, ToxinBrand, Patient } from '@/types/dosage';
+import { Patient, ToxinBrand, SelectedMuscle } from '@/types/dosage';
 
-// Define types for storage
+// Actualizar la interfaz CalculationResult con el modelo de paciente unificado
 export interface CalculationResult {
   totalDose: number;
   musclesList: SelectedMuscle[];
@@ -91,26 +91,36 @@ export const getRecentCalculation = async (): Promise<CalculationResult | null> 
   }
 };
 
-// Save patient
+// Mejorar el manejo de errores en las operaciones de almacenamiento
 export const savePatient = async (patient: Patient): Promise<boolean> => {
   try {
-    // Get existing patients
+    // Obtener pacientes existentes
     const patientsString = await AsyncStorage.getItem(STORAGE_KEYS.PATIENTS);
     const patients: Patient[] = patientsString ? JSON.parse(patientsString) : [];
     
-    // Check if patient already exists
+    // Verificar si el paciente ya existe
     const existingIndex = patients.findIndex(p => p.id === patient.id);
     
     if (existingIndex >= 0) {
-      // Update existing patient
+      // Actualizar paciente existente
       patients[existingIndex] = patient;
     } else {
-      // Add new patient
+      // Generar ID para nuevo paciente si no tiene
+      if (!patient.id) {
+        patient.id = String(Date.now());
+      }
+      // Añadir nuevo paciente
       patients.push(patient);
     }
     
-    // Save updated patients
+    // Guardar pacientes actualizados
     await AsyncStorage.setItem(STORAGE_KEYS.PATIENTS, JSON.stringify(patients));
+    
+    // Sincronizar con localStorage si estamos en web
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(STORAGE_KEYS.PATIENTS, JSON.stringify(patients));
+    }
+    
     return true;
   } catch (error) {
     console.error('Error saving patient:', error);

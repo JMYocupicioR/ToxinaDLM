@@ -1,22 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Patient } from '@/types/dosage';
+import { getPatients, savePatient, deletePatient } from '@/services/storageService';
 
-// Extended patient interface with ID and treatment history
-export interface PatientRecord extends Patient {
-  id: string;
-  lastVisit?: string;
-  notes?: string;
-  treatmentHistory?: {
-    date: string;
-    toxin: string;
-    totalDose: number;
-    muscles: Array<{
-      name: string;
-      dose: number;
-    }>;
-    notes?: string;
-  }[];
-}
 
 // Sample data for initial development
 const initialPatients: PatientRecord[] = [
@@ -141,24 +126,30 @@ const loadPatients = (): PatientRecord[] => {
   return initialPatients;
 };
 
-// Custom hook for patient management
+// Eliminar la interfaz PatientRecord redundante
 export function usePatients() {
-  const [patients, setPatients] = useState<PatientRecord[]>(initialPatients);
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load patients on initial mount
+  // Mejorar la carga de pacientes con manejo de errores
   useEffect(() => {
-    const loadedPatients = loadPatients();
-    setPatients(loadedPatients);
-    setIsLoading(false);
+    const loadPatients = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const storedPatients = await getPatients();
+        setPatients(storedPatients);
+      } catch (err) {
+        console.error('Error loading patients:', err);
+        setError('Failed to load patients data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPatients();
   }, []);
-
-  // Save patients when they change
-  useEffect(() => {
-    if (!isLoading) {
-      savePatients(patients);
-    }
-  }, [patients, isLoading]);
 
   // Add a new patient
   const addPatient = (patient: Omit<PatientRecord, 'id'>): PatientRecord => {

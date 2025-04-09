@@ -1,5 +1,5 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Patient, SelectedMuscle, ToxinBrand, TOXIN_BRANDS, SESSION_LIMITS } from '@/types/dosage';
 import { toxinData } from '@/data/toxinData';
 import { pathologies } from '@/data/pathologyData';
@@ -41,9 +41,31 @@ export interface DosageCalculatorMethods {
   };
 }
 
+// Centralizar la lógica de cálculo de factor de ajuste
+const calculatePediatricAdjustmentFactor = (age?: number, weight?: number): number => {
+  if (age === undefined || weight === undefined || age >= 18) {
+    return 1.0;
+  }
+
+  // Implementar un algoritmo más sofisticado basado en edad y peso
+  if (age < 2) {
+    // Factor muy conservador para niños muy pequeños
+    return Math.min(Math.max(weight / 60, 0.4), 0.6);
+  } else if (age < 6) {
+    // Niños de 2-5 años
+    return Math.min(Math.max(weight / 55, 0.5), 0.7);
+  } else if (age < 12) {
+    // Niños de 6-11 años
+    return Math.min(Math.max(weight / 50, 0.6), 0.8);
+  } else {
+    // Adolescentes de 12-17 años
+    return Math.min(Math.max(weight / 45, 0.7), 0.9);
+  }
+};
+
 export const DosageCalculator = forwardRef<DosageCalculatorMethods, DosageCalculatorProps>(
   ({ onCalculate, initialBrand, initialPathologyId }, ref) => {
-    // State for the calculator
+    // State declarations
     const [selectedBrand, setSelectedBrand] = useState<ToxinBrand | ''>(initialBrand || '');
     const [selectedPathology, setSelectedPathology] = useState<string | null>(initialPathologyId || null);
     const [selectedMuscles, setSelectedMuscles] = useState<SelectedMuscle[]>([]);
@@ -91,6 +113,21 @@ export const DosageCalculator = forwardRef<DosageCalculatorMethods, DosageCalcul
       }
     }, [selectedMuscles, patient]);
 
+    // Añadir validación de datos
+    const isValidCalculationData = (): boolean => {
+      // Verificar que haya una marca seleccionada
+      if (!selectedBrand) return false;
+      
+      // Verificar que haya músculos seleccionados
+      if (selectedMuscles.length === 0) return false;
+      
+      // Verificar que los datos del paciente sean válidos si se proporcionan
+      if (patient.age !== undefined && (patient.age < 0 || patient.age > 120)) return false;
+      if (patient.weight !== undefined && (patient.weight <= 0 || patient.weight > 300)) return false;
+      
+      return true;
+    };
+
     // Handle brand selection
     const handleBrandChange = (brand: ToxinBrand | '') => {
       if (brand !== selectedBrand) {
@@ -131,7 +168,7 @@ export const DosageCalculator = forwardRef<DosageCalculatorMethods, DosageCalcul
       if (availableMuscles.length === 0) return;
       
       // Calculate adjustment factor for children
-      const adjustmentFactor = calculateAdjustmentFactor();
+      const adjustmentFactor = calculatePediatricAdjustmentFactor(patient.age, patient.weight);
       
       // Create new muscle objects with dosage types from recommendations
       const newMuscles = availableMuscles.map(recommendation => {
@@ -165,16 +202,6 @@ export const DosageCalculator = forwardRef<DosageCalculatorMethods, DosageCalcul
       setPatient(updatedPatient);
     };
 
-    // Calculate dose adjustment factor based on patient data
-    const calculateAdjustmentFactor = (): number => {
-      // Standard adjustment for pediatric patients
-      if (patient.age !== undefined && patient.age < 18 && patient.weight !== undefined) {
-        // Simple adjustment based on weight - can be refined
-        return Math.min(Math.max(patient.weight / 50, 0.6), 1.0);
-      }
-      return 1.0;
-    };
-
     // Calculate total dose from selected muscles
     const calculateTotalDose = (muscles = selectedMuscles) => {
       if (!selectedBrand || muscles.length === 0) {
@@ -183,7 +210,18 @@ export const DosageCalculator = forwardRef<DosageCalculatorMethods, DosageCalcul
         return;
       }
 
-      const adjustmentFactor = calculateAdjustmentFactor();
+      // Verificar la validez de los datos antes de calcular
+      if (!isValidCalculationData()) {
+        setSafetyAlerts(['Error: Por favor verifique los datos ingresados']);
+        return;
+      }
+
+      // Usar la función centralizada de ajuste pediátrico
+      const adjustmentFactor = calculatePediatricAdjustmentFactor(
+        patient.age, 
+        patient.weight
+      );
+      
       const alerts: string[] = [];
       let total = 0;
 
@@ -248,33 +286,6 @@ export const DosageCalculator = forwardRef<DosageCalculatorMethods, DosageCalcul
       setSafetyAlerts([]);
     };
 
-    // Function to handle recommended muscle selection from PathologySelector
-    const handleRecommendedMusclesApply = (recommendations: Array<{
-      muscleName: string;
-      recommendedDosage: 'min' | 'max';
-    }>) => {
-      if (!selectedBrand) return;
-      
-      const adjustmentFactor = calculateAdjustmentFactor();
-      
-      // Create muscle objects based on recommendations
-      const newMuscles = recommendations.map(rec => {
-        const muscleData = toxinData[selectedBrand as ToxinBrand][rec.muscleName];
-        if (!muscleData) return null;
-        
-        const baseAmount = rec.recommendedDosage === 'min' ? muscleData.min : muscleData.max;
-        
-        return {
-          name: rec.muscleName,
-          dosageType: rec.recommendedDosage,
-          baseAmount,
-          adjustedAmount: Math.round(baseAmount * adjustmentFactor)
-        };
-      }).filter((m): m is SelectedMuscle => m !== null);
-      
-      setSelectedMuscles(newMuscles);
-    };
-
     return (
       <ScrollView style={styles.container}>
         {safetyAlerts.length > 0 && <SafetyAlerts alerts={safetyAlerts} />}
@@ -296,7 +307,7 @@ export const DosageCalculator = forwardRef<DosageCalculatorMethods, DosageCalcul
               selectedBrand={selectedBrand}
               selectedPathologyId={selectedPathology}
               onSelectPathology={handlePathologyChange}
-              onApplyRecommendedMuscles={handleRecommendedMusclesApply}
+              onApplyRecommendedMuscles={applyRecommendedMuscles}
             />
 
             {selectedPathology && (
@@ -309,7 +320,7 @@ export const DosageCalculator = forwardRef<DosageCalculatorMethods, DosageCalcul
                   if (selectedMuscles.some(m => m.name === muscleName)) return;
                   
                   const muscleData = toxinData[selectedBrand][muscleName];
-                  const adjustmentFactor = calculateAdjustmentFactor();
+                  const adjustmentFactor = calculatePediatricAdjustmentFactor(patient.age, patient.weight);
                   const baseAmount = dosageType === 'min' ? muscleData.min : muscleData.max;
                   
                   const newMuscle: SelectedMuscle = {
