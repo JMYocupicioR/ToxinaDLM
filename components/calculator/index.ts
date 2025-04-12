@@ -5,3 +5,5 @@ export { MuscleSelector } from './MuscleSelector';
 export { PatientInfo } from './PatientInfo';
 export { SelectedMusclesList } from './SelectedMusclesList';
 export { CalculationResults } from './CalculationResults';
+export { PathologySelector } from './PathologySelector';
+export { RecommendedMuscles } from './RecommendedMuscles';

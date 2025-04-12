@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
+// Importamos correctamente el componente DosageCalculator y su interfaz
 import { DosageCalculator, DosageCalculatorMethods } from '@/components/DosageCalculator';
 import { SafetyAlerts } from '@/components/SafetyAlerts';
 import { CalculationResults } from '@/components/calculator/CalculationResults';

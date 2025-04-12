@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -60,8 +60,10 @@ export function MuscleSelector({ brand, selectedMuscles, onMusclesChange }: Musc
   const [filteredMuscles, setFilteredMuscles] = useState<string[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
   
-  // Get all available muscles for current brand
-  const allMuscles = Object.keys(toxinData[brand]);
+  // Get all available muscles for current brand using useMemo to prevent recreating on each render
+  const allMuscles = useMemo(() => {
+    return Object.keys(toxinData[brand]);
+  }, [brand]);
   
   // Filter muscles by search text or selected group
   useEffect(() => {
@@ -72,13 +74,14 @@ export function MuscleSelector({ brand, selectedMuscles, onMusclesChange }: Musc
         muscle.toLowerCase().includes(searchText.toLowerCase())
       );
     } else if (selectedGroup) {
-      filtered = MUSCLE_GROUPS[selectedGroup as keyof typeof MUSCLE_GROUPS] || [];
+      // Get muscles for the selected group
+      const groupMuscles = MUSCLE_GROUPS[selectedGroup as keyof typeof MUSCLE_GROUPS] || [];
       // Only include muscles that are available for the selected brand
-      filtered = filtered.filter(muscle => allMuscles.includes(muscle));
+      filtered = groupMuscles.filter(muscle => allMuscles.includes(muscle));
     }
     
     setFilteredMuscles(filtered);
-  }, [searchText, brand, selectedGroup, allMuscles]);
+  }, [searchText, selectedGroup, allMuscles]);
   
   const addMuscle = (muscleName: string) => {
     if (selectedMuscles.some((m) => m.name === muscleName)) {
@@ -96,6 +99,7 @@ export function MuscleSelector({ brand, selectedMuscles, onMusclesChange }: Musc
     onMusclesChange([...selectedMuscles, newMuscle]);
     setIsModalVisible(false);
     setSearchText('');
+    setSelectedGroup(null);
   };
 
   return (
@@ -118,14 +122,22 @@ export function MuscleSelector({ brand, selectedMuscles, onMusclesChange }: Musc
         visible={isModalVisible}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setIsModalVisible(false)}
+        onRequestClose={() => {
+          setIsModalVisible(false);
+          setSearchText('');
+          setSelectedGroup(null);
+        }}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Muscles</Text>
               <TouchableOpacity 
-                onPress={() => setIsModalVisible(false)}
+                onPress={() => {
+                  setIsModalVisible(false);
+                  setSearchText('');
+                  setSelectedGroup(null);
+                }}
                 style={styles.closeButton}
               >
                 <X size={20} color="#64748b" />

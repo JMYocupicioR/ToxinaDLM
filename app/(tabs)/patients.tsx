@@ -17,6 +17,13 @@ interface Patient {
   lastVisit?: string;
 }
 
+// Constantes para validación
+const MAX_AGE = 120;
+const MIN_AGE = 0;
+const MAX_WEIGHT = 300; // kg
+const MIN_WEIGHT = 0.5; // kg
+const MAX_NAME_LENGTH = 100;
+
 export default function PatientsScreen() {
   // State
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -33,6 +40,14 @@ export default function PatientsScreen() {
     lastVisit: new Date().toISOString().split('T')[0]
   });
   
+  // Estado para errores de validación
+  const [validationErrors, setValidationErrors] = useState<{
+    name?: string;
+    age?: string;
+    weight?: string;
+    lastVisit?: string;
+  }>({});
+  
   // Load patients on component mount
   useEffect(() => {
     loadPatients();
@@ -48,6 +63,7 @@ export default function PatientsScreen() {
       }
     } catch (error) {
       console.error('Error loading patients:', error);
+      Alert.alert('Error', 'Failed to load patient data. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -59,6 +75,57 @@ export default function PatientsScreen() {
         patient.name.toLowerCase().includes(searchText.toLowerCase())
       )
     : patients;
+  
+  // Función para validar todos los campos
+  const validatePatient = (): boolean => {
+    const errors: {
+      name?: string;
+      age?: string;
+      weight?: string;
+      lastVisit?: string;
+    } = {};
+    
+    // Validar nombre (requerido)
+    if (!editingPatient.name.trim()) {
+      errors.name = 'Name is required';
+    } else if (editingPatient.name.length > MAX_NAME_LENGTH) {
+      errors.name = `Name must be less than ${MAX_NAME_LENGTH} characters`;
+    }
+    
+    // Validar edad (opcional)
+    if (editingPatient.age !== undefined) {
+      if (editingPatient.age < MIN_AGE || editingPatient.age > MAX_AGE) {
+        errors.age = `Age must be between ${MIN_AGE} and ${MAX_AGE}`;
+      }
+    }
+    
+    // Validar peso (opcional)
+    if (editingPatient.weight !== undefined) {
+      if (editingPatient.weight < MIN_WEIGHT || editingPatient.weight > MAX_WEIGHT) {
+        errors.weight = `Weight must be between ${MIN_WEIGHT} and ${MAX_WEIGHT} kg`;
+      }
+    }
+    
+    // Validar fecha de última visita (opcional)
+    if (editingPatient.lastVisit) {
+      // Simple regex para validar formato YYYY-MM-DD
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(editingPatient.lastVisit)) {
+        errors.lastVisit = 'Date must be in YYYY-MM-DD format';
+      } else {
+        // Verificar que sea una fecha válida
+        const date = new Date(editingPatient.lastVisit);
+        if (isNaN(date.getTime())) {
+          errors.lastVisit = 'Invalid date';
+        }
+      }
+    }
+    
+    setValidationErrors(errors);
+    
+    // Devolver true si no hay errores
+    return Object.keys(errors).length === 0;
+  };
   
   // Handle adding a new patient
   const handleAddPatient = () => {
@@ -74,6 +141,7 @@ export default function PatientsScreen() {
     });
     
     setSelectedPatient(null);
+    setValidationErrors({});
     setIsModalVisible(true);
   };
   
@@ -81,13 +149,15 @@ export default function PatientsScreen() {
   const handleEditPatient = (patient: Patient) => {
     setSelectedPatient(patient);
     setEditingPatient({ ...patient });
+    setValidationErrors({});
     setIsModalVisible(true);
   };
   
   // Handle saving a patient
   const handleSavePatient = async () => {
-    if (!editingPatient.name.trim()) {
-      Alert.alert('Error', 'Patient name is required');
+    if (!validatePatient()) {
+      // Si hay errores de validación, mostrar alerta
+      Alert.alert('Validation Error', 'Please fix the errors in the form before saving.');
       return;
     }
     
@@ -266,51 +336,96 @@ export default function PatientsScreen() {
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Name</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    validationErrors.name && styles.inputError
+                  ]}
                   value={editingPatient.name}
-                  onChangeText={(text) => setEditingPatient({...editingPatient, name: text})}
+                  onChangeText={(text) => {
+                    setEditingPatient({...editingPatient, name: text});
+                    // Limpiar error mientras el usuario está escribiendo
+                    if (validationErrors.name) {
+                      setValidationErrors({...validationErrors, name: undefined});
+                    }
+                  }}
                   placeholder="Patient's name"
+                  maxLength={MAX_NAME_LENGTH}
                 />
+                {validationErrors.name && (
+                  <Text style={styles.errorText}>{validationErrors.name}</Text>
+                )}
               </View>
               
               <View style={styles.row}>
                 <View style={[styles.inputGroup, styles.halfInput]}>
                   <Text style={styles.inputLabel}>Age</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      validationErrors.age && styles.inputError
+                    ]}
                     value={editingPatient.age?.toString() || ''}
                     onChangeText={(text) => {
                       const age = text === '' ? undefined : parseInt(text);
                       setEditingPatient({...editingPatient, age});
+                      // Limpiar error mientras el usuario está escribiendo
+                      if (validationErrors.age) {
+                        setValidationErrors({...validationErrors, age: undefined});
+                      }
                     }}
                     placeholder="Years"
                     keyboardType="numeric"
                   />
+                  {validationErrors.age && (
+                    <Text style={styles.errorText}>{validationErrors.age}</Text>
+                  )}
                 </View>
                 
                 <View style={[styles.inputGroup, styles.halfInput]}>
                   <Text style={styles.inputLabel}>Weight (kg)</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      validationErrors.weight && styles.inputError
+                    ]}
                     value={editingPatient.weight?.toString() || ''}
                     onChangeText={(text) => {
                       const weight = text === '' ? undefined : parseFloat(text);
                       setEditingPatient({...editingPatient, weight});
+                      // Limpiar error mientras el usuario está escribiendo
+                      if (validationErrors.weight) {
+                        setValidationErrors({...validationErrors, weight: undefined});
+                      }
                     }}
                     placeholder="kg"
                     keyboardType="numeric"
                   />
+                  {validationErrors.weight && (
+                    <Text style={styles.errorText}>{validationErrors.weight}</Text>
+                  )}
                 </View>
               </View>
               
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Last Visit</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    validationErrors.lastVisit && styles.inputError
+                  ]}
                   value={editingPatient.lastVisit || ''}
-                  onChangeText={(text) => setEditingPatient({...editingPatient, lastVisit: text})}
+                  onChangeText={(text) => {
+                    setEditingPatient({...editingPatient, lastVisit: text});
+                    // Limpiar error mientras el usuario está escribiendo
+                    if (validationErrors.lastVisit) {
+                      setValidationErrors({...validationErrors, lastVisit: undefined});
+                    }
+                  }}
                   placeholder="YYYY-MM-DD"
                 />
+                {validationErrors.lastVisit && (
+                  <Text style={styles.errorText}>{validationErrors.lastVisit}</Text>
+                )}
               </View>
               
               <View style={styles.inputGroup}>
@@ -526,6 +641,15 @@ const styles = StyleSheet.create({
     padding: 10,
     fontSize: 14,
     color: '#334155',
+  },
+  inputError: {
+    borderColor: '#ef4444',
+    backgroundColor: '#fef2f2',
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 12,
+    marginTop: 2,
   },
   textArea: {
     height: 100,

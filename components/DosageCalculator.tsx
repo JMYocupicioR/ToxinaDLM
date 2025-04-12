@@ -203,8 +203,11 @@ export const DosageCalculator = forwardRef<DosageCalculatorMethods, DosageCalcul
     };
 
     // Calculate total dose from selected muscles
-    const calculateTotalDose = (muscles = selectedMuscles) => {
-      if (!selectedBrand || muscles.length === 0) {
+    const calculateTotalDose = (musclesParam?: SelectedMuscle[] | any) => {
+      // Ensure muscles is a valid array
+      const muscles = Array.isArray(musclesParam) ? musclesParam : selectedMuscles;
+      
+      if (!selectedBrand || !muscles || muscles.length === 0) {
         setTotalDose(null);
         setSafetyAlerts([]);
         return;
@@ -239,8 +242,18 @@ export const DosageCalculator = forwardRef<DosageCalculatorMethods, DosageCalcul
       }
 
       // Calculate the total dose and apply the adjustment
-      const updatedMuscles = muscles.map(muscle => {
+      const updatedMuscles = muscles.map((muscle: SelectedMuscle) => {
+        if (!muscle || typeof muscle !== 'object' || !muscle.name) {
+          console.error('Invalid muscle object:', muscle);
+          return muscle;
+        }
+        
         const muscleData = toxinData[selectedBrand as ToxinBrand][muscle.name];
+        if (!muscleData) {
+          console.error(`Muscle data not found for ${muscle.name} in ${selectedBrand}`);
+          return muscle;
+        }
+        
         const baseAmount = muscle.dosageType === 'min' ? muscleData.min : muscleData.max;
         const adjustedAmount = Math.round(baseAmount * adjustmentFactor);
         

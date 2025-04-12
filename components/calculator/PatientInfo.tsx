@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Modal, FlatList } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Modal, FlatList, Alert } from 'react-native';
 import { Patient } from '@/types/dosage';
 import { ChevronDown, ChevronUp, User, Search, X, UserPlus } from 'lucide-react-native';
 import { usePatients, PatientRecord } from '@/hooks/usePatients';
@@ -11,10 +11,20 @@ interface PatientInfoProps {
   onPatientChange: (patient: Patient) => void;
 }
 
+// Validaciones de datos del paciente
+const MAX_AGE = 120;
+const MIN_AGE = 0;
+const MAX_WEIGHT = 300; // kg
+const MIN_WEIGHT = 0.5; // kg
+
 export function PatientInfo({ patient, onPatientChange }: PatientInfoProps) {
   const [expanded, setExpanded] = useState(false);
   const [patientSelectorVisible, setPatientSelectorVisible] = useState(false);
   const [searchText, setSearchText] = useState('');
+  const [validationErrors, setValidationErrors] = useState<{
+    age?: string;
+    weight?: string;
+  }>({});
   
   // Get patients data and functions
   const { patients } = usePatients();
@@ -51,6 +61,61 @@ export function PatientInfo({ patient, onPatientChange }: PatientInfoProps) {
       age: undefined,
       weight: undefined
     });
+    setValidationErrors({});
+  };
+
+  // Validar edad
+  const validateAge = (value: string): boolean => {
+    if (!value) return true; // Permitir valores vacíos
+    
+    const age = parseFloat(value);
+    if (isNaN(age)) {
+      setValidationErrors(prev => ({ ...prev, age: 'Must be a number' }));
+      return false;
+    }
+    
+    if (age < MIN_AGE || age > MAX_AGE) {
+      setValidationErrors(prev => ({ ...prev, age: `Must be between ${MIN_AGE} and ${MAX_AGE}` }));
+      return false;
+    }
+    
+    setValidationErrors(prev => ({ ...prev, age: undefined }));
+    return true;
+  };
+  
+  // Validar peso
+  const validateWeight = (value: string): boolean => {
+    if (!value) return true; // Permitir valores vacíos
+    
+    const weight = parseFloat(value);
+    if (isNaN(weight)) {
+      setValidationErrors(prev => ({ ...prev, weight: 'Must be a number' }));
+      return false;
+    }
+    
+    if (weight < MIN_WEIGHT || weight > MAX_WEIGHT) {
+      setValidationErrors(prev => ({ ...prev, weight: `Must be between ${MIN_WEIGHT} and ${MAX_WEIGHT} kg` }));
+      return false;
+    }
+    
+    setValidationErrors(prev => ({ ...prev, weight: undefined }));
+    return true;
+  };
+  
+  // Manejar cambio de edad con validación
+  const handleAgeChange = (text: string) => {
+    if (validateAge(text)) {
+      const age = text === '' ? undefined : parseInt(text);
+      onPatientChange({ ...patient, age });
+    }
+  };
+  
+  // Manejar cambio de peso con validación
+  const handleWeightChange = (text: string) => {
+    if (validateWeight(text)) {
+      const weight = text === '' ? undefined : parseFloat(text);
+      onPatientChange({ ...patient, weight });
+    }
   };
   
   return (
@@ -111,6 +176,7 @@ export function PatientInfo({ patient, onPatientChange }: PatientInfoProps) {
               placeholder="Patient Name"
               value={patient.name}
               onChangeText={(text) => onPatientChange({ ...patient, name: text })}
+              maxLength={100} // Limitar longitud para prevenir desbordamientos
             />
           </View>
           
@@ -118,29 +184,35 @@ export function PatientInfo({ patient, onPatientChange }: PatientInfoProps) {
             <View style={[styles.inputContainer, styles.halfWidth]}>
               <Text style={styles.inputLabel}>Weight (kg)</Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  validationErrors.weight && styles.inputError
+                ]}
                 placeholder="Weight"
                 keyboardType="numeric"
                 value={patient.weight?.toString()}
-                onChangeText={(text) => {
-                  const weight = text === '' ? undefined : parseFloat(text);
-                  onPatientChange({ ...patient, weight });
-                }}
+                onChangeText={handleWeightChange}
               />
+              {validationErrors.weight && (
+                <Text style={styles.errorText}>{validationErrors.weight}</Text>
+              )}
             </View>
             
             <View style={[styles.inputContainer, styles.halfWidth]}>
               <Text style={styles.inputLabel}>Age</Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  validationErrors.age && styles.inputError
+                ]}
                 placeholder="Age"
                 keyboardType="numeric"
                 value={patient.age?.toString()}
-                onChangeText={(text) => {
-                  const age = text === '' ? undefined : parseInt(text);
-                  onPatientChange({ ...patient, age });
-                }}
+                onChangeText={handleAgeChange}
               />
+              {validationErrors.age && (
+                <Text style={styles.errorText}>{validationErrors.age}</Text>
+              )}
             </View>
           </View>
           
@@ -338,6 +410,15 @@ const styles = StyleSheet.create({
     padding: 10,
     fontSize: 14,
     color: '#334155',
+  },
+  inputError: {
+    borderColor: '#ef4444',
+    backgroundColor: '#fef2f2',
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 12,
+    marginTop: 2,
   },
   row: {
     flexDirection: 'row',
